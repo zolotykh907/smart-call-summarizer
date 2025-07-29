@@ -1,0 +1,5 @@
+dotenv
+torch
+openai-whisper
+pyannote.audio
+pydub

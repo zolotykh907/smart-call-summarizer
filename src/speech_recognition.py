@@ -45,3 +45,9 @@ class SpeechRecognizer:
         recognition_result = self.recognition(audio_file)
 
         return recognition_result['text']
+    
+
+if __name__ == "__main__":
+    # Usage example
+    s = SpeechRecognizer()
+    print(s.recognition('data/4.wav')['segments'])
