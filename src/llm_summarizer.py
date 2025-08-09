@@ -78,20 +78,6 @@ class LlmSummarizer:
             return f"Error: {e}"
 
 
-def check_ollama_service():
-    """
-    Check the availability of the Ollama service
-    """
-    try:
-        import requests
-        response = requests.get('http://localhost:11434/api/tags', timeout=5)
-        if response.status_code == 200:
-            return True
-        return False
-    except:
-        return False
-
-
 if __name__ == "__main__":
    # Usage example
     summarizer = LlmSummarizer()
