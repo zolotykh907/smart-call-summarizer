@@ -3,3 +3,5 @@ torch
 openai-whisper
 pyannote.audio
 pydub
+langchain
+langchain-ollama
