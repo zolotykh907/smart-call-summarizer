@@ -33,17 +33,9 @@ class SummaryPipeline:
 
 
     def save_to_markdown(self, text, filename='data/4.markdown'):
-        with open(filename, "w", encoding="utf-8") as f:
-            f.write("# Итог созвона\n\n")
-            sections = [s.strip() for s in text.split("**") if s.strip()]
-            
-            for section in sections:
-                if ":" in section:
-                    title, content = section.split(":", 1)
-                    f.write(f"## {title.strip()}\n\n")
-                    f.write(f"{content.strip()}\n\n")
-                else:
-                    f.write(f"{section}\n\n")
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(text)
+        print(f"Файл успешно сохранён: {filename}")
 
 
     def run(self, audio_file):
