@@ -32,6 +32,20 @@ class DialoguePipeline:
         return merged_segments
 
 
+    def save_to_markdown(self, text, filename='data/4.markdown'):
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write("# Итог созвона\n\n")
+            sections = [s.strip() for s in text.split("**") if s.strip()]
+            
+            for section in sections:
+                if ":" in section:
+                    title, content = section.split(":", 1)
+                    f.write(f"## {title.strip()}\n\n")
+                    f.write(f"{content.strip()}\n\n")
+                else:
+                    f.write(f"{section}\n\n")
+
+
     def run(self, audio_file):
         diarization = self.speaker_identifier.identify_speakers(audio_file)
         segments_info = self.speaker_identifier.get_segments_info(diarization)
@@ -51,9 +65,10 @@ if __name__ == "__main__":
     pipeline = DialoguePipeline()
     res = pipeline.run('data/4.wav')
 
-    print(res['summary'])
-    print('\n')
-    print('-'*40)
-    print('\n')
-    for d in res['dialogue']:
-        print(d)
+    pipeline.save_to_markdown(res['summary'])
+    # print(res['summary'])
+    # print('\n')
+    # print('-'*40)
+    # print('\n')
+    # for d in res['dialogue']:
+    #     print(d)
