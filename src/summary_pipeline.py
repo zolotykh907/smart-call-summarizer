@@ -32,11 +32,32 @@ class SummaryPipeline:
         return merged_segments
 
 
-    def save_to_markdown(self, text, filename='data/4.markdown'):
+    def summary_to_markdown(self, text, filename='data/4_summary.markdown'):
         with open(filename, 'w', encoding='utf-8') as f:
             f.write(text)
         print(f"Файл успешно сохранён: {filename}")
 
+
+    def dialogue_to_markdown(self, dialogue, filename='data/4_dialogue.markdown'):
+        markdown_content = "# Диалог\n\n"
+        markdown_content += "| Время | Спикер | Реплика |\n"
+        markdown_content += "|-------|--------|---------|\n"
+        
+        for line in dialogue:
+            time_range = f"{line['start']:.1f}-{line['end']:.1f}"
+            markdown_content += f"| {time_range} | {line['s']} | {line['text'].strip()} |\n"
+        
+        markdown_content += "\n## Полная расшифровка\n\n"
+        
+        current_speaker = None
+        for line in dialogue:
+            if line['s'] != current_speaker:
+                markdown_content += f"\n**{line['s']}:** \n"
+                current_speaker = line['s']
+            markdown_content += f"> {line['text'].strip()}\n"
+        
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(markdown_content)
 
     def run(self, audio_file):
         diarization = self.speaker_identifier.identify_speakers(audio_file)
