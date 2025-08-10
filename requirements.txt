@@ -5,3 +5,6 @@ pyannote.audio
 pydub
 langchain
 langchain-ollama
+fastapi
+uvicorn
+python-multipart
