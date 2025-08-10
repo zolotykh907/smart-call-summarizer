@@ -1,5 +1,6 @@
 import os
 import logging
+from datetime import timedelta
 
 from llm_summarizer import LlmSummarizer
 from speaker_identifier import SpeakerIdentifier
@@ -24,40 +25,37 @@ class SummaryPipeline:
                 speaker = diarization_segment['speaker']
 
                 if (diarization_start > recognition_start - eps) and (diarization_end < recognition_end + eps):
-                    merged_segments.append({'s': speaker, 
+                    merged_segments.append({'speaker': speaker, 
                                 'text': text,
                                 'start': max(recognition_start, diarization_start),
-                                'end': max(recognition_end, diarization_end)})
+                                'end': min(recognition_end, diarization_end)})
 
         return merged_segments
 
 
-    def summary_to_markdown(self, text, filename='data/4_summary.markdown'):
+    def summary_to_markdown(self, text, filename='data/4_summary.md'):
         with open(filename, 'w', encoding='utf-8') as f:
             f.write(text)
-        print(f"Файл успешно сохранён: {filename}")
 
 
-    def dialogue_to_markdown(self, dialogue, filename='data/4_dialogue.markdown'):
-        markdown_content = "# Диалог\n\n"
-        markdown_content += "| Время | Спикер | Реплика |\n"
-        markdown_content += "|-------|--------|---------|\n"
-        
-        for line in dialogue:
-            time_range = f"{line['start']:.1f}-{line['end']:.1f}"
-            markdown_content += f"| {time_range} | {line['s']} | {line['text'].strip()} |\n"
-        
-        markdown_content += "\n## Полная расшифровка\n\n"
-        
-        current_speaker = None
-        for line in dialogue:
-            if line['s'] != current_speaker:
-                markdown_content += f"\n**{line['s']}:** \n"
-                current_speaker = line['s']
-            markdown_content += f"> {line['text'].strip()}\n"
-        
-        with open(filename, 'w', encoding='utf-8') as f:
-            f.write(markdown_content)
+    def dialogue_to_markdown(self, dialogue, filepath="data/4_dialogue.md"):
+        def format_time(seconds):
+            td = timedelta(seconds=seconds)
+            minutes, seconds = divmod(td.seconds, 60)
+            return f"{minutes:02}:{seconds:02}"
+
+        lines = ["Текст созвона\n"]
+        for seg in dialogue:
+            speaker = seg["speaker"]
+            start = format_time(seg["start"])
+            end = format_time(seg["end"])
+            text = seg["text"].strip()
+            lines.append(f"**{speaker}** [{start} – {end}]: {text}  ")
+
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write("\n".join(lines))
+
+
 
     def run(self, audio_file):
         diarization = self.speaker_identifier.identify_speakers(audio_file)
@@ -78,7 +76,8 @@ if __name__ == "__main__":
     pipeline = SummaryPipeline()
     res = pipeline.run('data/4.wav')
 
-    pipeline.save_to_markdown(res['summary'])
+    pipeline.summary_to_markdown(res['summary'])
+    pipeline.dialogue_to_markdown(res['dialogue'])
     # print(res['summary'])
     # print('\n')
     # print('-'*40)
