@@ -6,7 +6,7 @@ from speaker_identifier import SpeakerIdentifier
 from speech_recognition import SpeechRecognizer
 
 
-class DialoguePipeline:
+class SummaryPipeline:
     def __init__(self):
         self.summarizer = LlmSummarizer()
         self.speaker_identifier = SpeakerIdentifier()
@@ -62,7 +62,7 @@ class DialoguePipeline:
 
 
 if __name__ == "__main__":
-    pipeline = DialoguePipeline()
+    pipeline = SummaryPipeline()
     res = pipeline.run('data/4.wav')
 
     pipeline.save_to_markdown(res['summary'])
