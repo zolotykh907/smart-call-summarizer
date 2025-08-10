@@ -1,4 +1,5 @@
 import logging
+import os
 
 import whisper
 from pydub import AudioSegment
@@ -40,6 +41,9 @@ class SpeechRecognizer:
         except Exception as e:
             logging.error(f"Recognition failed: {e}")
             raise
+        finally:
+            os.remove(processed_audio_file)
+            logging.info(f"Temporary file {processed_audio_file} deleted.")
 
     def speech_to_text(self, audio_file):
         segments = []
