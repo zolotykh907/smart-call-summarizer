@@ -34,7 +34,7 @@ class LlmSummarizer:
         {text}
         """
 
-    def summarize(self, text):
+    def full_summarize(self, text):
         """
         Summarize the call transcript
         
@@ -54,7 +54,7 @@ class LlmSummarizer:
             logging.error(f"Error during summarization: {e}")
             return f"Error during processing: {e}"
 
-    def extract_summary_only(self, text):
+    def summary_only(self, text):
         """
         Extract only the summary
         
@@ -64,14 +64,14 @@ class LlmSummarizer:
         Returns:
             Summary
         """
-        simple_prompt = """
+        prompt = """
         Создай краткое резюме (2-3 предложения) следующего текста созвона:
         
         {text}
         """
         
         try:
-            result = self.model.invoke(simple_prompt.format(text=text))
+            result = self.model.invoke(prompt.format(text=text))
             return result
         except Exception as e:
             logging.error(f"Error during summary creation: {e}")
@@ -85,6 +85,7 @@ if __name__ == "__main__":
 
     audio_file = 'data/temp_audio.wav'
     text = speech_recognizer.speech_to_text(audio_file)
+    print(text)
     
-    summary = summarizer.summarize(text)
+    summary = summarizer.full_summarize(text)
     print(summary)

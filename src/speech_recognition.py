@@ -24,7 +24,7 @@ class SpeechRecognizer:
         try:
             audio = AudioSegment.from_file(audio_file)
             audio = audio.set_frame_rate(16000).set_channels(1)
-            temp_path = "temp_audio.wav"
+            temp_path = "data/temp_audio.wav"
             audio.export(temp_path, format="wav")
             return temp_path
         except Exception as e:
@@ -42,10 +42,19 @@ class SpeechRecognizer:
             raise
 
     def speech_to_text(self, audio_file):
+        segments = []
+        keys = ['id', 'start', 'end', 'text']
+
         recognition_result = self.recognition(audio_file)
 
-        return recognition_result['text']
-    
+        for segment in recognition_result['segments']:
+            segments.append({key: segment[key] for key in keys})
+
+        return {'text': recognition_result['text'],
+                'segments': segments
+        }
+        
+
 
 if __name__ == "__main__":
     # Usage example
