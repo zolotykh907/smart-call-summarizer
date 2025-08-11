@@ -1,6 +1,5 @@
 import os
 import logging
-from datetime import timedelta
 
 from llm_summarizer import LlmSummarizer
 from speaker_identifier import SpeakerIdentifier
@@ -34,27 +33,6 @@ class SummaryPipeline:
                                 'end': min(recognition_end, diarization_end)})
                     break
         return merged_segments
-
-    def summary_to_markdown(self, text, filename='data/4_summary.md'):
-        with open(filename, 'w', encoding='utf-8') as f:
-            f.write(text)
-
-    def dialogue_to_markdown(self, dialogue, filepath="data/4_dialogue.md"):
-        def format_time(seconds):
-            td = timedelta(seconds=seconds)
-            minutes, seconds = divmod(td.seconds, 60)
-            return f"{minutes:02}:{seconds:02}"
-
-        lines = ["Текст созвона\n"]
-        for seg in dialogue:
-            speaker = seg["speaker"]
-            start = format_time(seg["start"])
-            end = format_time(seg["end"])
-            text = seg["text"].strip()
-            lines.append(f"**{speaker}** [{start} – {end}]: {text}  ")
-
-        with open(filepath, "w", encoding="utf-8") as f:
-            f.write("\n".join(lines))
 
     def run(self, audio_file):
         diarization = self.speaker_identifier.identify_speakers(audio_file)
