@@ -122,6 +122,18 @@ async def summary_audio(file: UploadFile=File(...)):
             os.remove(file_path)
 
 
+@app.post('/resummarize')
+async def resummarize(payload: dict):
+    text = payload.get('text') if isinstance(payload, dict) else None
+    if not text or not isinstance(text, str):
+        raise HTTPException(status_code=400, detail="Отсутствует текст для суммаризации")
+    try:
+        summary = pipeline.summarizer.full_summarize(text)
+        return {"success": True, "summary": summary}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

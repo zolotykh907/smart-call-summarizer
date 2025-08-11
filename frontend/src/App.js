@@ -16,6 +16,7 @@ function App() {
   const [serverMessage, setServerMessage] = useState(null);
   const [serverProgress, setServerProgress] = useState(0);
   const pollRef = useRef(null);
+  const audioUrlRef = useRef(null);
 
   const handleResults = (data) => {
     setResults(data);
@@ -34,9 +35,10 @@ function App() {
     }
   };
 
-  const handleJobStart = (newJobId) => {
+  const handleJobStart = (newJobId, audioUrl) => {
     setJobId(newJobId);
     setLoading(true);
+    audioUrlRef.current = audioUrl || null;
   };
 
   useEffect(() => {
@@ -50,7 +52,7 @@ function App() {
           setServerMessage(data.message || null);
           setServerProgress(typeof data.progress === 'number' ? data.progress : 0);
           if (data.status === 'completed' && data.success) {
-            setResults({ summary: data.summary, dialogue: data.dialogue });
+            setResults({ summary: data.summary, dialogue: data.dialogue, audioUrl: audioUrlRef.current });
             setJobId(null);
             setLoading(false);
             clearInterval(pollRef.current);
@@ -77,6 +79,10 @@ function App() {
   const resetResults = () => {
     setResults(null);
     setError(null);
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current);
+      audioUrlRef.current = null;
+    }
   };
 
   return (

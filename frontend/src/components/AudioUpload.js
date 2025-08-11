@@ -36,7 +36,8 @@ const AudioUpload = ({ onResults, onError, onLoading, onJobStart }) => {
 
       if (response.data && response.data.jobId) {
         jobStarted = true;
-        if (onJobStart) onJobStart(response.data.jobId);
+        const objectUrl = URL.createObjectURL(file);
+        if (onJobStart) onJobStart(response.data.jobId, objectUrl);
       } else if (response.data && response.data.success) {
         // совместимость со старым синхронным ответом
         onResults(response.data);

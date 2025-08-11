@@ -1,11 +1,16 @@
-import React, { useMemo, useState } from 'react';
-import { Download, FileText, MessageSquare, Clipboard, CheckCircle2, Link as LinkIcon, Search, Filter, Clock, User } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import axios from 'axios';
+import { Download, FileText, MessageSquare, Clipboard, CheckCircle2, Link as LinkIcon, Search, Filter, Clock, User, RotateCcw } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 const Results = ({ results, onReset }) => {
   const [activeTab, setActiveTab] = useState('summary');
   const [copied, setCopied] = useState(false);
+  const [summaryText, setSummaryText] = useState(results.summary || '');
+  const [reSummarizing, setReSummarizing] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const listRef = useRef(null);
 
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
@@ -25,8 +30,12 @@ const Results = ({ results, onReset }) => {
     URL.revokeObjectURL(url);
   };
 
+  useEffect(() => {
+    setSummaryText(results.summary || '');
+  }, [results.summary]);
+
   const downloadSummary = () => {
-    downloadMarkdown(results.summary, 'summary.md');
+    downloadMarkdown(summaryText, 'summary.md');
   };
 
   const downloadDialogue = () => {
@@ -41,11 +50,26 @@ const Results = ({ results, onReset }) => {
 
   const copySummary = async () => {
     try {
-      await navigator.clipboard.writeText(results.summary || '');
+      await navigator.clipboard.writeText(summaryText || '');
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch (_) {
       // no-op
+    }
+  };
+
+  const triggerResummarize = async () => {
+    try {
+      setReSummarizing(true);
+      const text = (results.dialogue || []).map(s => s.text).join(' ');
+      const { data } = await axios.post('/resummarize', { text }, { timeout: 120000 });
+      if (data && data.success && data.summary) {
+        setSummaryText(data.summary);
+      }
+    } catch (e) {
+      // опустим уведомление, можно добавить тост
+    } finally {
+      setReSummarizing(false);
     }
   };
 
@@ -181,6 +205,18 @@ const Results = ({ results, onReset }) => {
     });
   }, [results.dialogue, speakerFilter, query]);
 
+  // Автоскролл диалога к текущему месту
+  useEffect(() => {
+    if (!listRef.current) return;
+    const idx = filteredSegments.findIndex(
+      (s) => currentTime >= s.start && currentTime <= s.end
+    );
+    if (idx >= 0) {
+      const node = listRef.current.querySelector(`[data-idx="${idx}"]`);
+      if (node) node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [currentTime, filteredSegments]);
+
   const copyVisibleDialogue = async () => {
     try {
       let content = '# Текст созвона (фильтрованный)\n\n';
@@ -225,7 +261,7 @@ const Results = ({ results, onReset }) => {
             `}
           >
             <FileText className="h-4 w-4" />
-            <span>Резюме</span>
+            <span>Анализ</span>
           </button>
           <button
             onClick={() => setActiveTab('dialogue')}
@@ -264,6 +300,14 @@ const Results = ({ results, onReset }) => {
                   <Download className="h-4 w-4" />
                   <span>Скачать</span>
                 </button>
+                <button
+                  onClick={triggerResummarize}
+                  disabled={reSummarizing}
+                  className={`btn-secondary inline-flex items-center space-x-2 text-sm ${reSummarizing ? 'opacity-60 cursor-not-allowed' : ''}`}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  <span>{reSummarizing ? 'Анализ...' : 'Повторить анализ'}</span>
+                </button>
               </div>
             </div>
 
@@ -288,7 +332,7 @@ const Results = ({ results, onReset }) => {
 
             <div className="prose prose-gray max-w-none">
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={MarkdownComponents}>
-                {results.summary}
+                {summaryText}
               </ReactMarkdown>
             </div>
           </div>
@@ -351,12 +395,12 @@ const Results = ({ results, onReset }) => {
 
             <div className="text-sm text-gray-600 mb-3">Показано сегментов: {filteredSegments.length}</div>
 
-            <div className="space-y-3 max-h-[70vh] overflow-y-auto">
+            <div className="space-y-3 max-h-[70vh] overflow-y-auto" ref={listRef}>
               {filteredSegments.map((segment, index) => {
                 const colors = getSpeakerColors(segment.speaker);
                 const initials = (segment.speaker.match(/([A-ZА-Я])/g) || [segment.speaker[0] || 'S']).slice(0, 2).join('');
                 return (
-                  <div key={index} className={`flex items-start gap-3`}>
+                  <div key={index} data-idx={index} className={`flex items-start gap-3`}>
                     <div className={`h-10 w-10 rounded-full flex items-center justify-center ${colors.bg} ${colors.text} font-semibold shadow-sm`}>
                       {initials}
                     </div>

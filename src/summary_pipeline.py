@@ -12,6 +12,8 @@ class SummaryPipeline:
         self.summarizer = LlmSummarizer()
         self.speaker_identifier = SpeakerIdentifier()
         self.speech_recognizer = SpeechRecognizer()
+        # Простое состояние текущего этапа
+        self.current_stage = None
 
     def _merge_speaker_segments(self, segments, eps=0.5):
         merged_segments = []
@@ -70,23 +72,29 @@ class SummaryPipeline:
 
     def run(self, audio_file, progress_cb=None):
         try:
+            self.current_stage = 'speech_recognition'
             if progress_cb: progress_cb(step='speech_recognition', progress=10, message='Распознаём речь...')
             recognition_result = self.speech_recognizer.speech_to_text(audio_file)
 
+            self.current_stage = 'speaker_identification'
             if progress_cb: progress_cb(step='speaker_identification', progress=40, message='Определяем спикеров...')
             diarization = self.speaker_identifier.identify_speakers(audio_file)
             segments_info = self.speaker_identifier.get_segments_info(diarization)
 
+            self.current_stage = 'merge'
             if progress_cb: progress_cb(step='merge', progress=60, message='Сопоставляем реплики и спикеров...')
             dialogue_segments = self._merge_diarization_and_recognition(segments_info, recognition_result['segments'])
             dialogue_segments = self._merge_speaker_segments(dialogue_segments)
 
+            self.current_stage = 'summarization'
             if progress_cb: progress_cb(step='summarization', progress=80, message='Генерируем резюме...')
             summary = self.summarizer.full_summarize(recognition_result['text'])
 
+            self.current_stage = 'done'
             if progress_cb: progress_cb(step='done', progress=100, message='Готово')
             return {'summary': summary, 'dialogue': dialogue_segments}
         except Exception as e:
+            self.current_stage = 'failed'
             if progress_cb:
                 progress_cb(step='failed', message=str(e))
             raise
