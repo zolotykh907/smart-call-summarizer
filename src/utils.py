@@ -1,11 +1,11 @@
 from datetime import timedelta
 
 
-def summary_to_markdown(self, text, filename):
+def summary_to_markdown(text, filename):
         with open(filename, 'w', encoding='utf-8') as f:
             f.write(text)
 
-def dialogue_to_markdown(self, dialogue, filepath):
+def dialogue_to_markdown(dialogue, filepath):
     def format_time(seconds):
         td = timedelta(seconds=seconds)
         minutes, seconds = divmod(td.seconds, 60)
