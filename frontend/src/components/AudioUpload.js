@@ -27,7 +27,7 @@ const AudioUpload = ({ onResults, onError, onLoading }) => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await axios.post('/upload-audio/', formData, {
+      const response = await axios.post('/summary-audio/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

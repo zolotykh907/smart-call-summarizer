@@ -158,19 +158,19 @@ const Results = ({ results, onReset }) => {
           <div className="text-2xl font-bold text-primary-600 mb-1">
             {results.dialogue.length}
           </div>
-          <div className="text-sm text-gray-600">Сегментов диалога</div>
+          <div className="text-sm text-gray-600">Кол-во сегментов диалога</div>
         </div>
         <div className="card text-center">
           <div className="text-2xl font-bold text-green-600 mb-1">
             {new Set(results.dialogue.map(s => s.speaker)).size}
           </div>
-          <div className="text-sm text-gray-600">Участников</div>
+          <div className="text-sm text-gray-600">Кол-во участников</div>
         </div>
         <div className="card text-center">
           <div className="text-2xl font-bold text-purple-600 mb-1">
             {Math.round((results.dialogue[results.dialogue.length - 1]?.end || 0) / 60)}
           </div>
-          <div className="text-sm text-gray-600">Минут длительность</div>
+          <div className="text-sm text-gray-600">Длительность</div>
         </div>
       </div>
     </div>
@@ -178,4 +178,3 @@ const Results = ({ results, onReset }) => {
 };
 
 export default Results;
-
