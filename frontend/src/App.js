@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import axios from 'axios';
 import Header from './components/Header';
+import Footer from './components/Footer';
 import AudioUpload from './components/AudioUpload';
 import Results from './components/Results';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -9,6 +11,11 @@ function App() {
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [jobId, setJobId] = useState(null);
+  const [serverStep, setServerStep] = useState(null);
+  const [serverMessage, setServerMessage] = useState(null);
+  const [serverProgress, setServerProgress] = useState(0);
+  const pollRef = useRef(null);
 
   const handleResults = (data) => {
     setResults(data);
@@ -27,6 +34,46 @@ function App() {
     }
   };
 
+  const handleJobStart = (newJobId) => {
+    setJobId(newJobId);
+    setLoading(true);
+  };
+
+  useEffect(() => {
+    if (!jobId) return;
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(async () => {
+      try {
+        const { data } = await axios.get(`/summary-audio/status/${jobId}`);
+        if (data) {
+          setServerStep(data.step || null);
+          setServerMessage(data.message || null);
+          setServerProgress(typeof data.progress === 'number' ? data.progress : 0);
+          if (data.status === 'completed' && data.success) {
+            setResults({ summary: data.summary, dialogue: data.dialogue });
+            setJobId(null);
+            setLoading(false);
+            clearInterval(pollRef.current);
+          } else if (data.status === 'error') {
+            setError(data.error || 'Ошибка обработки');
+            setJobId(null);
+            setLoading(false);
+            clearInterval(pollRef.current);
+          }
+        }
+      } catch (e) {
+        setError('Ошибка при получении статуса');
+        setJobId(null);
+        setLoading(false);
+        if (pollRef.current) clearInterval(pollRef.current);
+      }
+    }, 1200);
+
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [jobId]);
+
   const resetResults = () => {
     setResults(null);
     setError(null);
@@ -34,7 +81,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      <Header hasResults={Boolean(results)} onReset={resetResults} />
       
       <main className="container mx-auto px-4 py-8 max-w-6xl">
         {!results && !loading && (
@@ -43,13 +90,14 @@ function App() {
               onResults={handleResults}
               onError={handleError}
               onLoading={handleLoading}
+              onJobStart={handleJobStart}
             />
           </div>
         )}
 
         {loading && (
           <div className="flex justify-center items-center py-20">
-            <LoadingSpinner />
+            <LoadingSpinner step={serverStep} message={serverMessage} progress={serverProgress} />
           </div>
         )}
 
@@ -82,6 +130,7 @@ function App() {
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 }

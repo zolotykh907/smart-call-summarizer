@@ -68,18 +68,28 @@ class SummaryPipeline:
                     'end': recognition_end})
         return merged_segments
 
-    def run(self, audio_file):
-        diarization = self.speaker_identifier.identify_speakers(audio_file)
-        segments_info = self.speaker_identifier.get_segments_info(diarization)
-        recognition_result = self.speech_recognizer.speech_to_text(audio_file)
+    def run(self, audio_file, progress_cb=None):
+        try:
+            if progress_cb: progress_cb(step='speech_recognition', progress=10, message='Распознаём речь...')
+            recognition_result = self.speech_recognizer.speech_to_text(audio_file)
 
-        summary = self.summarizer.full_summarize(recognition_result['text'])
+            if progress_cb: progress_cb(step='speaker_identification', progress=40, message='Определяем спикеров...')
+            diarization = self.speaker_identifier.identify_speakers(audio_file)
+            segments_info = self.speaker_identifier.get_segments_info(diarization)
 
-        dialogue_segments = self._merge_diarization_and_recognition(segments_info, recognition_result['segments'])
-        dialogue_segments = self._merge_speaker_segments(dialogue_segments)
+            if progress_cb: progress_cb(step='merge', progress=60, message='Сопоставляем реплики и спикеров...')
+            dialogue_segments = self._merge_diarization_and_recognition(segments_info, recognition_result['segments'])
+            dialogue_segments = self._merge_speaker_segments(dialogue_segments)
 
-        return {'summary':summary, 
-                'dialogue':dialogue_segments}
+            if progress_cb: progress_cb(step='summarization', progress=80, message='Генерируем резюме...')
+            summary = self.summarizer.full_summarize(recognition_result['text'])
+
+            if progress_cb: progress_cb(step='done', progress=100, message='Готово')
+            return {'summary': summary, 'dialogue': dialogue_segments}
+        except Exception as e:
+            if progress_cb:
+                progress_cb(step='failed', message=str(e))
+            raise
 
 
 if __name__ == "__main__":

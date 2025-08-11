@@ -3,7 +3,7 @@ import { useDropzone } from 'react-dropzone';
 import { Upload, FileAudio, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 
-const AudioUpload = ({ onResults, onError, onLoading }) => {
+const AudioUpload = ({ onResults, onError, onLoading, onJobStart }) => {
   const onDrop = useCallback(async (acceptedFiles) => {
     const file = acceptedFiles[0];
     
@@ -23,21 +23,27 @@ const AudioUpload = ({ onResults, onError, onLoading }) => {
 
     onLoading(true);
 
+    let jobStarted = false;
     try {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await axios.post('/summary-audio/', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        timeout: 300000, // 5 минут таймаут
+      // Запускаем асинхронную задачу на сервере и получаем jobId
+      const response = await axios.post('/summary-audio/start', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 300000,
       });
 
-      if (response.data.success) {
+      if (response.data && response.data.jobId) {
+        jobStarted = true;
+        if (onJobStart) onJobStart(response.data.jobId);
+      } else if (response.data && response.data.success) {
+        // совместимость со старым синхронным ответом
         onResults(response.data);
+        onLoading(false);
       } else {
-        onError('Ошибка при обработке файла');
+        onError('Ошибка при запуске обработки');
+        onLoading(false);
       }
     } catch (error) {
       console.error('Upload error:', error);
@@ -59,10 +65,13 @@ const AudioUpload = ({ onResults, onError, onLoading }) => {
       }
       
       onError(errorMessage);
-    } finally {
       onLoading(false);
+    } finally {
+      // Если задача действительно запущена и управляется опросом статуса,
+      // не выключаем загрузку здесь. Её выключит App после завершения/ошибки.
+      if (jobStarted) return;
     }
-  }, [onResults, onError, onLoading]);
+  }, [onResults, onError, onLoading, onJobStart]);
 
   const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
     onDrop,
@@ -74,7 +83,7 @@ const AudioUpload = ({ onResults, onError, onLoading }) => {
   });
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-5xl mx-auto">
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-gray-900 mb-4">
           Загрузите аудио файл созвона
@@ -84,59 +93,68 @@ const AudioUpload = ({ onResults, onError, onLoading }) => {
         </p>
       </div>
 
-      <div
-        {...getRootProps()}
-        className={`
-          card cursor-pointer transition-all duration-200 border-2 border-dashed
-          ${isDragActive && !isDragReject 
-            ? 'border-primary-400 bg-primary-50' 
-            : 'border-gray-300 hover:border-primary-400 hover:bg-gray-50'
-          }
-          ${isDragReject ? 'border-red-400 bg-red-50' : ''}
-        `}
-      >
-        <input {...getInputProps()} />
-        
-        <div className="text-center py-12">
-          <div className="mb-4">
-            {isDragReject ? (
-              <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
-            ) : (
-              <FileAudio className="h-12 w-12 text-primary-500 mx-auto" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+        <div
+          {...getRootProps()}
+          className={`
+            card h-full cursor-pointer transition-all duration-200 border-2 border-dashed
+            ${isDragActive && !isDragReject 
+              ? 'border-primary-400 bg-primary-50' 
+              : 'border-gray-300 hover:border-primary-400 hover:bg-gray-50'
+            }
+            ${isDragReject ? 'border-red-400 bg-red-50' : ''}
+          `}
+        >
+          <input {...getInputProps()} />
+          
+          <div className="text-center py-12">
+            <div className="mb-4">
+              {isDragReject ? (
+                <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
+              ) : (
+                <FileAudio className="h-12 w-12 text-primary-500 mx-auto" />
+              )}
+            </div>
+            
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              {isDragActive 
+                ? (isDragReject ? 'Неподдерживаемый файл' : 'Отпустите файл здесь')
+                : 'Перетащите аудио файл сюда'
+              }
+            </h3>
+            
+            <p className="text-gray-600 mb-4">
+              {isDragActive 
+                ? (isDragReject ? 'Выберите аудио файл' : 'Файл будет загружен автоматически')
+                : 'или нажмите для выбора файла'
+              }
+            </p>
+            
+            {!isDragActive && (
+              <button className="btn-primary inline-flex items-center space-x-2">
+                <Upload className="h-4 w-4" />
+                <span>Выбрать файл</span>
+              </button>
             )}
           </div>
-          
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">
-            {isDragActive 
-              ? (isDragReject ? 'Неподдерживаемый файл' : 'Отпустите файл здесь')
-              : 'Перетащите аудио файл сюда'
-            }
-          </h3>
-          
-          <p className="text-gray-600 mb-4">
-            {isDragActive 
-              ? (isDragReject ? 'Выберите аудио файл' : 'Файл будет загружен автоматически')
-              : 'или нажмите для выбора файла'
-            }
-          </p>
-          
-          {!isDragActive && (
-            <button className="btn-primary inline-flex items-center space-x-2">
-              <Upload className="h-4 w-4" />
-              <span>Выбрать файл</span>
-            </button>
-          )}
         </div>
-      </div>
 
-      <div className="mt-6 text-center">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h4 className="font-semibold text-blue-900 mb-2">Что происходит при обработке:</h4>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Распознавание речи с помощью Whisper</li>
-            <li>• Идентификация спикеров с помощью Pyannote</li>
-            <li>• Анализ и суммаризация с помощью Llama3</li>
-          </ul>
+        <div className="card h-full">
+          <h4 className="font-semibold text-gray-900 mb-3">Как обрабатывается файл</h4>
+          <ol className="space-y-3 text-gray-700">
+            <li>
+              <span className="font-medium">1. Распознается речь</span> — Whisper превращает аудио в текст
+            </li>
+            <li>
+              <span className="font-medium">2. Определяются спикеры</span> — Pyannote выделяет участников разговора
+            </li>
+            <li>
+              <span className="font-medium">3. Анализ</span> — Llama3 создает структурированное резюме
+            </li>
+          </ol>
+          <div className="mt-4 text-sm text-gray-500">
+            Время обработки зависит от длительности и качества записи.
+          </div>
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Download, RotateCcw, FileText, MessageSquare, Clipboard, CheckCircle2, Link as LinkIcon, Search, Filter, Clock, User } from 'lucide-react';
+import { Download, FileText, MessageSquare, Clipboard, CheckCircle2, Link as LinkIcon, Search, Filter, Clock, User } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -209,15 +209,7 @@ const Results = ({ results, onReset }) => {
       </div>
 
       {/* Кнопки действий */}
-      <div className="flex justify-center space-x-4">
-        <button
-          onClick={onReset}
-          className="btn-secondary inline-flex items-center space-x-2"
-        >
-          <RotateCcw className="h-4 w-4" />
-          <span>Загрузить новый файл</span>
-        </button>
-      </div>
+      {/* Кнопка перенесена в Header */}
 
       {/* Табы */}
       <div className="border-b border-gray-200">

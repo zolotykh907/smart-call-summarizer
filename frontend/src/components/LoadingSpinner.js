@@ -1,37 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Loader2, Mic, Users, Brain } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Loader2, Mic, Users, Brain, CheckCircle2 } from 'lucide-react';
 
-const LoadingSpinner = () => {
-  const [currentStep, setCurrentStep] = useState(0);
-  
-  const steps = [
-    {
-      icon: Mic,
-      title: 'Распознавание речи',
-      description: 'Обрабатываем аудио с помощью Whisper...',
-      color: 'text-blue-600'
-    },
-    {
-      icon: Users,
-      title: 'Идентификация спикеров',
-      description: 'Определяем кто говорит с помощью Pyannote...',
-      color: 'text-green-600'
-    },
-    {
-      icon: Brain,
-      title: 'AI анализ',
-      description: 'Создаем резюме с помощью Llama3...',
-      color: 'text-purple-600'
-    }
-  ];
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentStep((prev) => (prev + 1) % steps.length);
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, [steps.length]);
+const LoadingSpinner = ({ step, message, progress }) => {
+  const steps = useMemo(() => ([
+    { key: 'speech_recognition', icon: Mic, title: 'Распознавание речи', description: 'Обрабатываем аудио с помощью Whisper...', color: 'text-blue-600' },
+    { key: 'speaker_identification', icon: Users, title: 'Идентификация спикеров', description: 'Определяем кто говорит с помощью Pyannote...', color: 'text-green-600' },
+    { key: 'merge', icon: CheckCircle2, title: 'Сопоставление сегментов', description: 'Сливаем реплики и спикеров...', color: 'text-amber-600' },
+    { key: 'summarization', icon: Brain, title: 'AI анализ', description: 'Создаем резюме с помощью Llama3...', color: 'text-purple-600' },
+  ]), []);
 
   return (
     <div className="text-center">
@@ -40,16 +16,22 @@ const LoadingSpinner = () => {
         <h2 className="text-2xl font-bold text-gray-900 mb-2">
           Обрабатываем ваш файл...
         </h2>
-        <p className="text-gray-600">
-          Это может занять несколько минут в зависимости от размера файла
-        </p>
+        <div className="flex items-center justify-center gap-3 text-gray-600">
+          <div className="h-2 w-48 bg-gray-200 rounded">
+            <div className="h-2 bg-primary-600 rounded" style={{ width: `${Math.min(100, Math.max(0, progress || 0))}%` }}></div>
+          </div>
+          <span className="text-sm">{Math.round(progress || 0)}%</span>
+        </div>
+        {message && (
+          <p className="text-gray-600 mt-2">{message}</p>
+        )}
       </div>
 
       <div className="max-w-md mx-auto">
         <div className="space-y-4">
-          {steps.map((step, index) => {
-            const Icon = step.icon;
-            const isActive = index === currentStep;
+          {steps.map((s, index) => {
+            const Icon = s.icon;
+            const isActive = s.key === step || (!step && index === 0);
             
             return (
               <div
@@ -64,16 +46,16 @@ const LoadingSpinner = () => {
               >
                 <div className={`
                   p-2 rounded-lg
-                  ${isActive ? step.color.replace('text-', 'bg-').replace('-600', '-100') : 'bg-gray-100'}
+                  ${isActive ? s.color.replace('text-', 'bg-').replace('-600', '-100') : 'bg-gray-100'}
                 `}>
-                  <Icon className={`h-5 w-5 ${isActive ? step.color : 'text-gray-400'}`} />
+                  <Icon className={`h-5 w-5 ${isActive ? s.color : 'text-gray-400'}`} />
                 </div>
                 <div className="flex-1 text-left">
                   <h3 className={`font-medium ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
-                    {step.title}
+                    {s.title}
                   </h3>
                   <p className={`text-sm ${isActive ? 'text-gray-600' : 'text-gray-400'}`}>
-                    {step.description}
+                    {s.description}
                   </p>
                 </div>
                 {isActive && (

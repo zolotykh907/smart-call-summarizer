@@ -1,7 +1,7 @@
 import React from 'react';
 import { Mic, Brain, Users } from 'lucide-react';
 
-const Header = () => {
+const Header = ({ hasResults, onReset }) => {
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
       <div className="container mx-auto px-4 py-6 max-w-6xl">
@@ -31,6 +31,14 @@ const Header = () => {
               <Users className="h-4 w-4" />
               <span>Идентификация спикеров</span>
             </div>
+            {hasResults && (
+              <button
+                onClick={onReset}
+                className="btn-secondary"
+              >
+                Новый файл
+              </button>
+            )}
           </div>
         </div>
       </div>
