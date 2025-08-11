@@ -14,24 +14,18 @@ class SummaryPipeline:
         self.speech_recognizer = SpeechRecognizer()
 
     def _merge_speaker_segments(self, segments, eps=0.5):
-        if len(segments)==0:
-            return []
-        
         merged_segments = []
-
-        for i in range(0, len(segments)-1):
+        i = 0
+        while i < len(segments):
             cur_speaker = segments[i]['speaker']
             merged_text = segments[i]['text']
             start, end = segments[i]['start'], segments[i]['end']
 
-            for j in range(i+1, len(segments)):
-                next_speaker = segments[j]['speaker']
-
-                if next_speaker == cur_speaker:
-                    merged_text += segments[j]['text']
-                    end = segments[j]['end']
-                else:
-                    break
+            j = i + 1
+            while j < len(segments) and segments[j]['speaker'] == cur_speaker:
+                merged_text += segments[j]['text']
+                end = segments[j]['end']
+                j += 1
 
             merged_segments.append({
                 'speaker': cur_speaker,
@@ -40,37 +34,47 @@ class SummaryPipeline:
                 'end': end
             })
 
-        return merged_segments     
+            i = j 
+
+        return merged_segments 
     
     def _merge_diarization_and_recognition(self, diarization_segments, recognition_segments, eps=0.1):
         diarization_segments = sorted(diarization_segments, key=lambda x: x['start'])
         recognition_segments = sorted(recognition_segments, key=lambda x: x['start'])
 
         merged_segments = []
-        for segment in recognition_segments:
-            recognition_start, recognition_end = segment['start'], segment['end']
-            text = segment['text']
+        for recognition_segment in recognition_segments:
+            recognition_start, recognition_end = recognition_segment['start'], recognition_segment['end']
+            text = recognition_segment['text']
 
+            overlaps = []
             for diarization_segment in diarization_segments:
                 diarization_start, diarization_end = diarization_segment['start'], diarization_segment['end']
                 speaker = diarization_segment['speaker']
 
-                if (recognition_end >= diarization_start - eps) and (recognition_start <= diarization_end + eps):
-                    merged_segments.append({'speaker': speaker, 
-                                'text': text,
-                                'start': max(recognition_start, diarization_start),
-                                'end': min(recognition_end, diarization_end)})
-                    break
+                start = max(recognition_start, diarization_start)
+                end = min(recognition_end, diarization_end)
+                overlap = end - start
+                
+                if overlap > 0:
+                    overlaps.append((speaker, overlap))
+
+            if len(overlaps) != 0:
+                speaker = max(overlaps, key=lambda x: x[1])[0]
+                merged_segments.append({
+                    'speaker': speaker,
+                    'text': text,
+                    'start': recognition_start,
+                    'end': recognition_end})
         return merged_segments
 
     def run(self, audio_file):
         diarization = self.speaker_identifier.identify_speakers(audio_file)
         segments_info = self.speaker_identifier.get_segments_info(diarization)
-        print(segments_info)
-        
         recognition_result = self.speech_recognizer.speech_to_text(audio_file)
 
         summary = self.summarizer.full_summarize(recognition_result['text'])
+
         dialogue_segments = self._merge_diarization_and_recognition(segments_info, recognition_result['segments'])
         dialogue_segments = self._merge_speaker_segments(dialogue_segments)
 
@@ -82,7 +86,6 @@ if __name__ == "__main__":
     pipeline = SummaryPipeline()
     res = pipeline.run('data/4.wav')
 
-    #pipeline.summary_to_markdown(res['summary'])
     summary_to_markdown(res['summary'], filepath='data/4s.md')
     # print(res['summary'])
     # print('\n')
