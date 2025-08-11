@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Download, RotateCcw, FileText, MessageSquare } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const Results = ({ results, onReset }) => {
   const [activeTab, setActiveTab] = useState('summary');
@@ -98,7 +99,7 @@ const Results = ({ results, onReset }) => {
           <div className="card">
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-xl font-semibold text-gray-900">
-                Резюме созвона
+                Анализ созвона
               </h3>
               <button
                 onClick={downloadSummary}
@@ -109,7 +110,9 @@ const Results = ({ results, onReset }) => {
               </button>
             </div>
             <div className="prose prose-gray max-w-none">
-              <ReactMarkdown>{results.summary}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {results.summary}
+              </ReactMarkdown>
             </div>
           </div>
         )}

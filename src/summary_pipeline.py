@@ -1,7 +1,7 @@
 import os
 import logging
 
-from utils import dialogue_to_markdown
+from utils import dialogue_to_markdown, summary_to_markdown
 from llm_summarizer import LlmSummarizer
 from speaker_identifier import SpeakerIdentifier
 from speech_recognition import SpeechRecognizer
@@ -66,6 +66,7 @@ class SummaryPipeline:
     def run(self, audio_file):
         diarization = self.speaker_identifier.identify_speakers(audio_file)
         segments_info = self.speaker_identifier.get_segments_info(diarization)
+        print(segments_info)
         
         recognition_result = self.speech_recognizer.speech_to_text(audio_file)
 
@@ -79,10 +80,10 @@ class SummaryPipeline:
 
 if __name__ == "__main__":
     pipeline = SummaryPipeline()
-    res = pipeline.run('data/5.wav')
+    res = pipeline.run('data/4.wav')
 
     #pipeline.summary_to_markdown(res['summary'])
-    dialogue_to_markdown(res['dialogue'], filepath='data/5.md')
+    summary_to_markdown(res['summary'], filepath='data/4s.md')
     # print(res['summary'])
     # print('\n')
     # print('-'*40)

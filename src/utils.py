@@ -1,8 +1,8 @@
 from datetime import timedelta
 
 
-def summary_to_markdown(text, filename):
-        with open(filename, 'w', encoding='utf-8') as f:
+def summary_to_markdown(text, filepath):
+        with open(filepath, 'w', encoding='utf-8') as f:
             f.write(text)
 
 def dialogue_to_markdown(dialogue, filepath):
