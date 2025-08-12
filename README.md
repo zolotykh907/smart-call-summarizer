@@ -68,7 +68,18 @@
 
 ### Предварительные требования
 
-Для работы необходимо получите токен Hugging Face для Pyannote:
+Для работы нужно установить `Ollama`.
+
+Далее нужно скачать llama3:
+```
+ollama pull llama3
+```
+В терминале запустите сервер Ollama, и не закрывайте его:
+```
+ollama serve
+```
+
+Так же необходимо получить токен Hugging Face для Pyannote:
   - Зарегистрируйтесь на [Hugging Face](https://huggingface.co/)
   - Перейдите в [Pyannote Speaker Diarization](https://huggingface.co/pyannote/speaker-diarization-3.1)
   - Создайте `токен` в настройках профиля
