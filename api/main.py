@@ -48,12 +48,20 @@ def process_job(job_id: str, file_path: str):
         _update_job(job_id, status="processing", step=None, progress=0, message="Запуск...")
 
         def cb(**kwargs):
+            # если задача отменена — прерываемся
+            job = JOBS.get(job_id, {})
+            if job.get("status") == "cancelled":
+                raise RuntimeError("Cancelled by user")
             _update_job(job_id, **kwargs)
 
         result = pipeline.run(file_path, progress_cb=cb)
         _update_job(job_id, status="completed", step="done", progress=100, message="Готово", result=result)
     except Exception as e:
-        _update_job(job_id, status="error", step="failed", message=str(e), error=str(e))
+        job = JOBS.get(job_id, {})
+        if job.get("status") == "cancelled":
+            _update_job(job_id, step="cancelled", message="Отменено пользователем", error=None)
+        else:
+            _update_job(job_id, status="error", step="failed", message=str(e), error=str(e))
     finally:
         if os.path.exists(file_path):
             try:
@@ -94,6 +102,15 @@ async def summary_audio_status(job_id: str):
     if job.get("status") == "error":
         response.update({"success": False, "error": job.get("error")})
     return JSONResponse(response)
+
+@app.post('/summary-audio/cancel/{job_id}')
+async def summary_audio_cancel(job_id: str):
+    job = JOBS.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Задача не найдена")
+    # пометим как отмененную; поток сам проверит и прервется на ближайшем колбэке
+    _update_job(job_id, status="cancelled", message="Отменено пользователем")
+    return {"success": True}
 
 @app.post('/summary-audio')
 async def summary_audio(file: UploadFile=File(...)):

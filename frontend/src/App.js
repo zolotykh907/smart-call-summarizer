@@ -17,6 +17,7 @@ function App() {
   const [serverProgress, setServerProgress] = useState(0);
   const pollRef = useRef(null);
   const audioUrlRef = useRef(null);
+  const cancellingRef = useRef(false);
 
   const handleResults = (data) => {
     setResults(data);
@@ -32,13 +33,44 @@ function App() {
     setLoading(isLoading);
     if (isLoading) {
       setError(null);
+      // Сбрасываем прогресс/этапы перед новым запуском, чтобы не мигало 100%
+      setServerStep(null);
+      setServerMessage(null);
+      setServerProgress(0);
     }
   };
 
   const handleJobStart = (newJobId, audioUrl) => {
+    // Дополнительный сброс на старте job, на случай если handleLoading уже отработал раньше
+    setServerStep(null);
+    setServerMessage(null);
+    setServerProgress(0);
+
     setJobId(newJobId);
     setLoading(true);
     audioUrlRef.current = audioUrl || null;
+  };
+
+  const handleCancel = async () => {
+    if (!jobId || cancellingRef.current) return;
+    cancellingRef.current = true;
+    try {
+      await axios.post(`/summary-audio/cancel/${jobId}`);
+    } catch (_) {
+      // ignore network/server errors on cancel
+    } finally {
+      if (pollRef.current) clearInterval(pollRef.current);
+      setJobId(null);
+      setLoading(false);
+      setServerMessage('Отменено пользователем');
+      setServerStep('cancelled');
+      setServerProgress(0);
+      if (audioUrlRef.current) {
+        try { URL.revokeObjectURL(audioUrlRef.current); } catch (_) {}
+        audioUrlRef.current = null;
+      }
+      cancellingRef.current = false;
+    }
   };
 
   useEffect(() => {
@@ -61,6 +93,16 @@ function App() {
             setJobId(null);
             setLoading(false);
             clearInterval(pollRef.current);
+          } else if (data.status === 'cancelled') {
+            setServerStep('cancelled');
+            setServerMessage('Отменено пользователем');
+            setJobId(null);
+            setLoading(false);
+            clearInterval(pollRef.current);
+            if (audioUrlRef.current) {
+              try { URL.revokeObjectURL(audioUrlRef.current); } catch (_) {}
+              audioUrlRef.current = null;
+            }
           }
         }
       } catch (e) {
@@ -69,7 +111,7 @@ function App() {
         setLoading(false);
         if (pollRef.current) clearInterval(pollRef.current);
       }
-    }, 1200);
+    }, 400);
 
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
@@ -102,8 +144,9 @@ function App() {
         )}
 
         {loading && (
-          <div className="flex justify-center items-center py-20">
+          <div className="flex flex-col justify-center items-center py-20">
             <LoadingSpinner step={serverStep} message={serverMessage} progress={serverProgress} />
+            <button onClick={handleCancel} className="btn-secondary mt-6">Отменить</button>
           </div>
         )}
 
