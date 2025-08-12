@@ -1,92 +1,3 @@
-# import os
-# import logging
-# from langchain_ollama.llms import OllamaLLM
-# from langchain_openai import ChatOpenAI
-
-# class LlmSummarizer:
-#     def __init__(self, provider="ollama", model_name="llama3", base_url=None, api_key=None):
-#         """
-#         provider: 'ollama' или 'lmstudio'
-#         model_name: название модели
-#         base_url: URL API (нужно для LM Studio)
-#         api_key: API ключ (нужно для LM Studio)
-#         """
-#         try:
-#             if provider == "ollama":
-#                 self.model = OllamaLLM(model=model_name, temperature=0.2)
-#                 logging.info(f"Ollama model '{model_name}' successfully loaded")
-            
-#             elif provider == "lm-studio":
-#                 self.model = ChatOpenAI(
-#                     model=model_name,
-#                     openai_api_base=base_url or "http://localhost:1234/v1",
-#                     openai_api_key=api_key or "lm-studio",
-#                     temperature=0.2
-#                 )
-#                 logging.info(f"LM Studio model '{model_name}' successfully loaded from {base_url}")
-            
-#             else:
-#                 raise ValueError(f"Unknown provider: {provider}")
-
-#         except Exception as e:
-#             logging.error(f"Error loading model: {e}")
-#             raise
-
-#         self.prompt = """
-#         Ты интеллектуальный ассистент для анализа деловых созвонов.
-        
-#         Проанализируй следующий текст созвона и создай резюме по следующему шаблону:
-#         - Основная цель созвона
-#         - Ключевые моменты
-#         - Действия и задачи
-
-#         Далее напиши краткое резюме (2-3 предложения).
-
-#         Оформь красиво в формате Markdown, на русском языке, соблюдая порядок заголовков:
-#         - Цель
-#         - Ключевые моменты
-#         - Действия и задачи
-#         - Резюме
-        
-#         Текст созвона:
-#         {text}
-#         """
-
-#     def _coerce_to_text(self, value):
-#         try:
-#             if hasattr(value, 'content'):
-#                 return value.content or ''
-#             if isinstance(value, str):
-#                 return value
-#             return str(value)
-#         except Exception:
-#             return ''
-
-#     def full_summarize(self, text):
-#         try:
-#             if not text or len(text.strip()) < 10:
-#                 return "Text is too short for analysis"
-#             result = self.model.invoke(self.prompt.format(text=text))
-#             return self._coerce_to_text(result)
-#         except Exception as e:
-#             logging.error(f"Error during summarization: {e}")
-#             return f"Error during processing: {e}"
-
-#     def summary_only(self, text):
-#         prompt = """
-#         Создай краткое резюме (2-3 предложения) следующего текста созвона:
-        
-#         {text}
-#         """
-#         try:
-#             result = self.model.invoke(prompt.format(text=text))
-#             return self._coerce_to_text(result)
-#         except Exception as e:
-#             logging.error(f"Error during summary creation: {e}")
-#             return f"Error: {e}"
-
-
-
 import logging
 from abc import ABC, abstractmethod
 from langchain_ollama.llms import OllamaLLM
@@ -95,7 +6,7 @@ from langchain_openai import ChatOpenAI
 
 class BaseSummarizer(ABC):
     def __init__(self):
-        self.prompt = """
+        self.summary_prompt = """
         Ты интеллектуальный ассистент для анализа деловых созвонов.
         
         Проанализируй следующий текст созвона и создай резюме по следующему шаблону:
@@ -130,7 +41,7 @@ class BaseSummarizer(ABC):
         try:
             if not text or len(text.strip()) < 10:
                 return "Text is too short for analysis"
-            result = self._invoke(self.prompt.format(text=text))
+            result = self._invoke(self.summary_prompt.format(text=text))
             return result
         except Exception as e:
             logging.error(f"Error during summarization: {e}")
