@@ -2,17 +2,16 @@ import os
 import logging
 
 from utils import dialogue_to_markdown, summary_to_markdown
-from llm_summarizer import LlmSummarizer
+from llm_summarizer import OllamaSummarizer, OpenAISummarizer
 from speaker_identifier import SpeakerIdentifier
 from speech_recognition import SpeechRecognizer
 
 
 class SummaryPipeline:
     def __init__(self):
-        self.summarizer = LlmSummarizer()
+        self.summarizer = OpenAISummarizer()
         self.speaker_identifier = SpeakerIdentifier()
         self.speech_recognizer = SpeechRecognizer()
-        # Простое состояние текущего этапа
         self.current_stage = None
 
     def _merge_speaker_segments(self, segments, eps=0.5):
@@ -101,10 +100,13 @@ class SummaryPipeline:
 
 
 if __name__ == "__main__":
+    #Usage example
     pipeline = SummaryPipeline()
     res = pipeline.run('data/4.wav')
 
-    summary_to_markdown(res['summary'], filepath='data/4s.md')
+    print(res['summary'])
+
+    #summary_to_markdown(res['summary'], filepath='data/4s.md')
     # print(res['summary'])
     # print('\n')
     # print('-'*40)
