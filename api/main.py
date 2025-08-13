@@ -48,7 +48,6 @@ def process_job(job_id: str, file_path: str):
         _update_job(job_id, status="processing", step=None, progress=0, message="Запуск...")
 
         def cb(**kwargs):
-            # если задача отменена — прерываемся
             job = JOBS.get(job_id, {})
             if job.get("status") == "cancelled":
                 raise RuntimeError("Cancelled by user")
@@ -108,7 +107,6 @@ async def summary_audio_cancel(job_id: str):
     job = JOBS.get(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Задача не найдена")
-    # пометим как отмененную; поток сам проверит и прервется на ближайшем колбэке
     _update_job(job_id, status="cancelled", message="Отменено пользователем")
     return {"success": True}
 

@@ -107,7 +107,7 @@ if __name__ == "__main__":
     pipeline = SummaryPipeline()
     res = pipeline.run('data/6.wav')
 
-    print(res['actions'])
+    print(res['actions'].dict())
 
     #summary_to_markdown(res['summary'], filepath='data/4s.md')
     # print(res['summary'])
