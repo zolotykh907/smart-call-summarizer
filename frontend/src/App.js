@@ -40,7 +40,7 @@ function App() {
     }
   };
 
-  const handleJobStart = (newJobId, audioUrl) => {
+  const handleJobStart = (newJobId, audioUrl, flags) => {
     // Дополнительный сброс на старте job, на случай если handleLoading уже отработал раньше
     setServerStep(null);
     setServerMessage(null);
@@ -49,6 +49,8 @@ function App() {
     setJobId(newJobId);
     setLoading(true);
     audioUrlRef.current = audioUrl || null;
+    // сохраняем флаги для спиннера
+    setResults({ __flags: flags });
   };
 
   const handleCancel = async () => {
@@ -84,7 +86,11 @@ function App() {
           setServerMessage(data.message || null);
           setServerProgress(typeof data.progress === 'number' ? data.progress : 0);
           if (data.status === 'completed' && data.success) {
-            setResults({ summary: data.summary, dialogue: data.dialogue, actions: data.actions, audioUrl: audioUrlRef.current });
+            const r = { audioUrl: audioUrlRef.current };
+            if (typeof data.summary !== 'undefined') r.summary = data.summary;
+            if (typeof data.dialogue !== 'undefined') r.dialogue = data.dialogue;
+            if (typeof data.actions !== 'undefined') r.actions = data.actions;
+            setResults(r);
             setJobId(null);
             setLoading(false);
             clearInterval(pollRef.current);
@@ -145,7 +151,12 @@ function App() {
 
         {loading && (
           <div className="flex flex-col justify-center items-center py-20">
-            <LoadingSpinner step={serverStep} message={serverMessage} progress={serverProgress} />
+            <LoadingSpinner 
+              step={serverStep} 
+              message={serverMessage} 
+              progress={serverProgress}
+              flags={(results && results.__flags) || { summary: true, dialogue: true, actions: true }}
+            />
             <button onClick={handleCancel} className="btn-secondary mt-6">Отменить</button>
           </div>
         )}

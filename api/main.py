@@ -2,7 +2,7 @@ import shutil
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import BackgroundTasks
@@ -43,7 +43,7 @@ def _update_job(job_id: str, **kwargs):
         JOBS[job_id] = job
     job.update(kwargs)
 
-def process_job(job_id: str, file_path: str):
+def process_job(job_id: str, file_path: str, flag_summary: bool = True, flag_dialogue: bool = True, flag_actions: bool = True):
     try:
         _update_job(job_id, status="processing", step=None, progress=0, message="Запуск...")
 
@@ -53,7 +53,13 @@ def process_job(job_id: str, file_path: str):
                 raise RuntimeError("Cancelled by user")
             _update_job(job_id, **kwargs)
 
-        result = pipeline.run(file_path, progress_cb=cb)
+        result = pipeline.run(
+            file_path,
+            progress_cb=cb,
+            flag_summary=flag_summary,
+            flag_dialogue=flag_dialogue,
+            flag_actions=flag_actions,
+        )
         _update_job(job_id, status="completed", step="done", progress=100, message="Готово", result=result)
     except Exception as e:
         job = JOBS.get(job_id, {})
@@ -69,7 +75,12 @@ def process_job(job_id: str, file_path: str):
                 pass
 
 @app.post('/summary-audio/start')
-async def summary_audio_start(file: UploadFile = File(...)):
+async def summary_audio_start(
+    file: UploadFile = File(...),
+    flag_summary: bool = Form(True),
+    flag_dialogue: bool = Form(True),
+    flag_actions: bool = Form(True),
+):
     if not file.filename.lower().endswith((".wav", ".mp3", ".m4a")):
         raise HTTPException(status_code=400, detail="Неподдерживаемый формат файла")
 
@@ -80,7 +91,11 @@ async def summary_audio_start(file: UploadFile = File(...)):
     job_id = str(uuid.uuid4())
     JOBS[job_id] = {"status": "pending", "step": None, "progress": 0, "message": None, "result": None, "error": None}
 
-    thread = threading.Thread(target=process_job, args=(job_id, file_path), daemon=True)
+    thread = threading.Thread(
+        target=process_job,
+        args=(job_id, file_path, flag_summary, flag_dialogue, flag_actions),
+        daemon=True,
+    )
     thread.start()
 
     return {"jobId": job_id}
@@ -111,7 +126,12 @@ async def summary_audio_cancel(job_id: str):
     return {"success": True}
 
 @app.post('/summary-audio')
-async def summary_audio(file: UploadFile=File(...)):
+async def summary_audio(
+    file: UploadFile = File(...),
+    flag_summary: bool = Form(True),
+    flag_dialogue: bool = Form(True),
+    flag_actions: bool = Form(True),
+):
     if not file.filename.lower().endswith((".wav", ".mp3", ".m4a")):
         raise HTTPException(status_code=400, detail="Неподдерживаемый формат файла")
     
@@ -120,14 +140,21 @@ async def summary_audio(file: UploadFile=File(...)):
         shutil.copyfileobj(file.file, buffer)
 
     try: 
-        result = pipeline.run(file_path)
+        result = pipeline.run(
+            file_path,
+            flag_summary=flag_summary,
+            flag_dialogue=flag_dialogue,
+            flag_actions=flag_actions,
+        )
 
-        return JSONResponse({
-            "success": True,
-            "summary": result['summary'],
-            "dialogue": result['dialogue'],
-            "actions": result.get('actions', [])
-        })
+        payload = {"success": True}
+        if 'summary' in result:
+            payload['summary'] = result['summary']
+        if 'dialogue' in result:
+            payload['dialogue'] = result['dialogue']
+        if 'actions' in result:
+            payload['actions'] = result['actions']
+        return JSONResponse(payload)
     except Exception as e:
         return JSONResponse(
             status_code=500,

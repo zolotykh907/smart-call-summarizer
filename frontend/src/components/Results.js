@@ -12,6 +12,16 @@ const Results = ({ results, onReset }) => {
   const [currentTime, setCurrentTime] = useState(0);
   const listRef = useRef(null);
   const actions = results.actions || [];
+  const hasSummary = Object.prototype.hasOwnProperty.call(results, 'summary');
+  const hasDialogue = Object.prototype.hasOwnProperty.call(results, 'dialogue');
+  const hasActions = Object.prototype.hasOwnProperty.call(results, 'actions');
+
+  useEffect(() => {
+    const tabs = [hasSummary && 'summary', hasDialogue && 'dialogue', hasActions && 'actions'].filter(Boolean);
+    if (!tabs.includes(activeTab)) {
+      setActiveTab(tabs[0] || 'summary');
+    }
+  }, [hasSummary, hasDialogue, hasActions]);
 
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
@@ -41,7 +51,7 @@ const Results = ({ results, onReset }) => {
 
   const downloadDialogue = () => {
     let content = '# Текст созвона\n\n';
-    results.dialogue.forEach((segment, index) => {
+    (results.dialogue || []).forEach((segment, index) => {
       const startTime = formatTime(segment.start);
       const endTime = formatTime(segment.end);
       content += `**${segment.speaker}** [${startTime} – ${endTime}]: ${segment.text}\n\n`;
@@ -251,6 +261,7 @@ const Results = ({ results, onReset }) => {
       {/* Табы */}
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8 justify-center">
+          {hasSummary && (
           <button
             onClick={() => setActiveTab('summary')}
             className={`
@@ -264,6 +275,8 @@ const Results = ({ results, onReset }) => {
             <FileText className="h-4 w-4" />
             <span>Анализ</span>
           </button>
+          )}
+          {hasDialogue && (
           <button
             onClick={() => setActiveTab('dialogue')}
             className={`
@@ -277,6 +290,8 @@ const Results = ({ results, onReset }) => {
             <MessageSquare className="h-4 w-4" />
             <span>Диалог</span>
           </button>
+          )}
+          {hasActions && (
           <button
             onClick={() => setActiveTab('actions')}
             className={`
@@ -290,12 +305,13 @@ const Results = ({ results, onReset }) => {
             <ListTodo className="h-4 w-4" />
             <span>Задачи</span>
           </button>
+          )}
         </nav>
       </div>
 
       {/* Контент табов */}
       <div className="animate-fade-in">
-        {activeTab === 'summary' && (
+        {activeTab === 'summary' && hasSummary && (
           <div className="card">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
               <h3 className="text-xl font-semibold text-gray-900">Резюме созвона</h3>
@@ -352,7 +368,7 @@ const Results = ({ results, onReset }) => {
           </div>
         )}
 
-        {activeTab === 'dialogue' && (
+        {activeTab === 'dialogue' && hasDialogue && (
           <div className="card">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
               <h3 className="text-xl font-semibold text-gray-900">Текст созвона с идентификацией спикеров</h3>
@@ -440,7 +456,7 @@ const Results = ({ results, onReset }) => {
           </div>
         )}
 
-        {activeTab === 'actions' && (
+        {activeTab === 'actions' && hasActions && (
           <div className="card">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
               <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
@@ -501,26 +517,28 @@ const Results = ({ results, onReset }) => {
       </div>
 
       {/* Статистика */}
+      {hasDialogue && (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="card text-center">
           <div className="text-2xl font-bold text-primary-600 mb-1">
-            {results.dialogue.length}
+            {(results.dialogue || []).length}
           </div>
           <div className="text-sm text-gray-600">Кол-во сегментов диалога</div>
         </div>
         <div className="card text-center">
           <div className="text-2xl font-bold text-green-600 mb-1">
-            {new Set(results.dialogue.map(s => s.speaker)).size}
+            {new Set((results.dialogue || []).map(s => s.speaker)).size}
           </div>
           <div className="text-sm text-gray-600">Кол-во участников</div>
         </div>
         <div className="card text-center">
           <div className="text-2xl font-bold text-purple-600 mb-1">
-            {Math.round((results.dialogue[results.dialogue.length - 1]?.end || 0) / 60)}
+            {Math.round((((results.dialogue || [])[((results.dialogue || []).length - 1)]?.end) || 0) / 60)}
           </div>
           <div className="text-sm text-gray-600">Длительность</div>
         </div>
       </div>
+      )}
     </div>
   );
 };

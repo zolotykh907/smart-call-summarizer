@@ -1,13 +1,14 @@
 import React, { useMemo } from 'react';
-import { Loader2, Mic, Users, Brain, CheckCircle2 } from 'lucide-react';
+import { Loader2, Mic, Users, Brain, CheckCircle2, ListTodo } from 'lucide-react';
 
-const LoadingSpinner = ({ step, message, progress }) => {
+const LoadingSpinner = ({ step, message, progress, flags = { summary: true, dialogue: true, actions: true } }) => {
   const steps = useMemo(() => ([
-    { key: 'speech_recognition', icon: Mic, title: 'Распознавание речи', description: 'Обрабатываем аудио с помощью Whisper...', color: 'text-blue-600' },
-    { key: 'speaker_identification', icon: Users, title: 'Идентификация спикеров', description: 'Определяем кто говорит с помощью Pyannote...', color: 'text-green-600' },
-    { key: 'merge', icon: CheckCircle2, title: 'Сопоставление сегментов', description: 'Сливаем реплики и спикеров...', color: 'text-amber-600' },
-    { key: 'summarization', icon: Brain, title: 'AI анализ', description: 'Создаем резюме с помощью Llama3...', color: 'text-purple-600' },
-  ]), []);
+    { key: 'speech_recognition', icon: Mic, title: 'Распознавание речи', description: 'Обрабатываем аудио с помощью Whisper...', color: 'text-blue-600', show: true },
+    { key: 'speaker_identification', icon: Users, title: 'Идентификация спикеров', description: 'Определяем кто говорит с помощью Pyannote...', color: 'text-green-600', show: !!flags.dialogue },
+    { key: 'merge', icon: CheckCircle2, title: 'Сопоставление сегментов', description: 'Сопоставляем реплики и спикеров...', color: 'text-amber-600', show: !!flags.dialogue },
+    { key: 'summarization', icon: Brain, title: 'AI анализ', description: 'Создаем резюме...', color: 'text-purple-600', show: !!flags.summary },
+    { key: 'actions', icon: ListTodo, title: 'Извлечение задач', description: 'Ищем действия и дедлайны...', color: 'text-pink-600', show: !!flags.actions },
+  ]), [flags]);
 
   return (
     <div className="text-center">
@@ -29,7 +30,7 @@ const LoadingSpinner = ({ step, message, progress }) => {
 
       <div className="max-w-md mx-auto">
         <div className="space-y-4">
-          {steps.map((s, index) => {
+          {steps.filter(s => s.show).map((s, index) => {
             const Icon = s.icon;
             const isActive = s.key === step || (!step && index === 0);
             

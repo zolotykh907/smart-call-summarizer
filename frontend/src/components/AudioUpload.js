@@ -1,9 +1,12 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, FileAudio, AlertCircle } from 'lucide-react';
 import axios from 'axios';
 
 const AudioUpload = ({ onResults, onError, onLoading, onJobStart }) => {
+  const [computeSummary, setComputeSummary] = useState(true);
+  const [computeDialogue, setComputeDialogue] = useState(true);
+  const [computeActions, setComputeActions] = useState(true);
   const onDrop = useCallback(async (acceptedFiles) => {
     const file = acceptedFiles[0];
     
@@ -27,6 +30,10 @@ const AudioUpload = ({ onResults, onError, onLoading, onJobStart }) => {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      // отправляем флаги обработки
+      formData.append('flag_summary', String(computeSummary));
+      formData.append('flag_dialogue', String(computeDialogue));
+      formData.append('flag_actions', String(computeActions));
 
       // Запускаем асинхронную задачу на сервере и получаем jobId
       const response = await axios.post('/summary-audio/start', formData, {
@@ -37,7 +44,11 @@ const AudioUpload = ({ onResults, onError, onLoading, onJobStart }) => {
       if (response.data && response.data.jobId) {
         jobStarted = true;
         const objectUrl = URL.createObjectURL(file);
-        if (onJobStart) onJobStart(response.data.jobId, objectUrl);
+        if (onJobStart) onJobStart(response.data.jobId, objectUrl, {
+          summary: computeSummary,
+          dialogue: computeDialogue,
+          actions: computeActions,
+        });
       } else if (response.data && response.data.success) {
         // совместимость со старым синхронным ответом
         onResults(response.data);
@@ -72,7 +83,7 @@ const AudioUpload = ({ onResults, onError, onLoading, onJobStart }) => {
       // не выключаем загрузку здесь. Её выключит App после завершения/ошибки.
       if (jobStarted) return;
     }
-  }, [onResults, onError, onLoading, onJobStart]);
+  }, [onResults, onError, onLoading, onJobStart, computeSummary, computeDialogue, computeActions]);
 
   const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
     onDrop,
@@ -141,6 +152,21 @@ const AudioUpload = ({ onResults, onError, onLoading, onJobStart }) => {
         </div>
 
         <div className="card h-full">
+          <h4 className="font-semibold text-gray-900 mb-3">Выберите, что нужно получить</h4>
+          <div className="space-y-3 mb-6">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" className="checkbox" checked={computeSummary} onChange={(e)=>setComputeSummary(e.target.checked)} />
+              <span className="text-gray-800">Краткое резюме</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" className="checkbox" checked={computeDialogue} onChange={(e)=>setComputeDialogue(e.target.checked)} />
+              <span className="text-gray-800">Текст диалога</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" className="checkbox" checked={computeActions} onChange={(e)=>setComputeActions(e.target.checked)} />
+              <span className="text-gray-800">Действия и задачи</span>
+            </label>
+          </div>
           <h4 className="font-semibold text-gray-900 mb-3">Как обрабатывается файл</h4>
           <ol className="space-y-3 text-gray-700">
             <li>
@@ -150,7 +176,7 @@ const AudioUpload = ({ onResults, onError, onLoading, onJobStart }) => {
               <span className="font-medium">2. Определяются спикеры</span> — Pyannote выделяет участников разговора
             </li>
             <li>
-              <span className="font-medium">3. Анализ</span> — LLM создает структурированное резюме
+              <span className="font-medium">3. Анализ</span> — LLM создает структурированное резюме и выделяет задачи
             </li>
           </ol>
           <div className="mt-4 text-sm text-gray-500">

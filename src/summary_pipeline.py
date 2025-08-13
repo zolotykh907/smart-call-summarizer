@@ -71,31 +71,48 @@ class SummaryPipeline:
                     'end': recognition_end})
         return merged_segments
 
-    def run(self, audio_file, progress_cb=None):
+    def run(self, audio_file, progress_cb=None, *, flag_summary=True, flag_dialogue=True, flag_actions=True):
+        summary = None
+        dialogue_segments = None
+        actions = None
+
         try:
             self.current_stage = 'speech_recognition'
             if progress_cb: progress_cb(step='speech_recognition', progress=10, message='Распознаём речь...')
             recognition_result = self.speech_recognizer.speech_to_text(audio_file)
 
-            self.current_stage = 'speaker_identification'
-            if progress_cb: progress_cb(step='speaker_identification', progress=40, message='Определяем спикеров...')
-            diarization = self.speaker_identifier.identify_speakers(audio_file)
-            segments_info = self.speaker_identifier.get_segments_info(diarization)
+            if flag_dialogue:
+                self.current_stage = 'speaker_identification'
+                if progress_cb: progress_cb(step='speaker_identification', progress=40, message='Определяем спикеров...')
+                diarization = self.speaker_identifier.identify_speakers(audio_file)
+                segments_info = self.speaker_identifier.get_segments_info(diarization)
 
-            self.current_stage = 'merge'
-            if progress_cb: progress_cb(step='merge', progress=60, message='Сопоставляем реплики и спикеров...')
-            dialogue_segments = self._merge_diarization_and_recognition(segments_info, recognition_result['segments'])
-            dialogue_segments = self._merge_speaker_segments(dialogue_segments)
+                self.current_stage = 'merge'
+                if progress_cb: progress_cb(step='merge', progress=60, message='Сопоставляем реплики и спикеров...')
+                dialogue_segments = self._merge_diarization_and_recognition(segments_info, recognition_result['segments'])
+                dialogue_segments = self._merge_speaker_segments(dialogue_segments)
 
-            self.current_stage = 'summarization'
-            if progress_cb: progress_cb(step='summarization', progress=80, message='Генерируем резюме...')
-            summary = self.summarizer.full_summarize(recognition_result['text'])
-            actions_obj = self.actions_extractor.extract(recognition_result['text'])
-            actions = [a.dict() for a in getattr(actions_obj, 'actions', [])]
+            if flag_summary:
+                self.current_stage = 'summarization'
+                if progress_cb: progress_cb(step='summarization', progress=80, message='Генерируем резюме...')
+                summary = self.summarizer.full_summarize(recognition_result['text'])
+
+            if flag_actions:
+                if progress_cb: progress_cb(step='actions', progress=90, message='Извлекаем задачи...')
+                actions_obj = self.actions_extractor.extract(recognition_result['text'])
+                actions = [a.dict() for a in getattr(actions_obj, 'actions', [])]
 
             self.current_stage = 'done'
             if progress_cb: progress_cb(step='done', progress=100, message='Готово')
-            return {'summary': summary, 'dialogue': dialogue_segments, 'actions': actions}
+            
+            result = {}
+            if flag_summary:
+                result['summary'] = summary
+            if flag_dialogue:
+                result['dialogue'] = dialogue_segments
+            if flag_actions:
+                result['actions'] = actions
+            return result
         except Exception as e:
             self.current_stage = 'failed'
             if progress_cb:
