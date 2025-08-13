@@ -150,7 +150,7 @@ const AudioUpload = ({ onResults, onError, onLoading, onJobStart }) => {
               <span className="font-medium">2. Определяются спикеры</span> — Pyannote выделяет участников разговора
             </li>
             <li>
-              <span className="font-medium">3. Анализ</span> — Llama3 создает структурированное резюме
+              <span className="font-medium">3. Анализ</span> — LLM создает структурированное резюме
             </li>
           </ol>
           <div className="mt-4 text-sm text-gray-500">

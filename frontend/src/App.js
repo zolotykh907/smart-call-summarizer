@@ -84,7 +84,7 @@ function App() {
           setServerMessage(data.message || null);
           setServerProgress(typeof data.progress === 'number' ? data.progress : 0);
           if (data.status === 'completed' && data.success) {
-            setResults({ summary: data.summary, dialogue: data.dialogue, audioUrl: audioUrlRef.current });
+            setResults({ summary: data.summary, dialogue: data.dialogue, actions: data.actions, audioUrl: audioUrlRef.current });
             setJobId(null);
             setLoading(false);
             clearInterval(pollRef.current);

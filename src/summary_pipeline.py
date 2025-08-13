@@ -90,7 +90,8 @@ class SummaryPipeline:
             self.current_stage = 'summarization'
             if progress_cb: progress_cb(step='summarization', progress=80, message='Генерируем резюме...')
             summary = self.summarizer.full_summarize(recognition_result['text'])
-            actions = self.actions_extractor.extract(recognition_result['text'])
+            actions_obj = self.actions_extractor.extract(recognition_result['text'])
+            actions = [a.dict() for a in getattr(actions_obj, 'actions', [])]
 
             self.current_stage = 'done'
             if progress_cb: progress_cb(step='done', progress=100, message='Готово')
