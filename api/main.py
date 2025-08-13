@@ -127,7 +127,8 @@ async def summary_audio(file: UploadFile=File(...)):
         return JSONResponse({
             "success": True,
             "summary": result['summary'],
-            "dialogue": result['dialogue']
+            "dialogue": result['dialogue'],
+            "actions": result.get('actions', [])
         })
     except Exception as e:
         return JSONResponse(

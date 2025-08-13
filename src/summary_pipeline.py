@@ -3,6 +3,7 @@ import logging
 
 from utils import dialogue_to_markdown, summary_to_markdown
 from llm_summarizer import OllamaSummarizer, OpenAISummarizer
+from actions_extractor import OllamaExtractor, OpenAiExtractor
 from speaker_identifier import SpeakerIdentifier
 from speech_recognition import SpeechRecognizer
 
@@ -10,6 +11,7 @@ from speech_recognition import SpeechRecognizer
 class SummaryPipeline:
     def __init__(self):
         self.summarizer = OpenAISummarizer()
+        self.actions_extractor = OpenAiExtractor()
         self.speaker_identifier = SpeakerIdentifier()
         self.speech_recognizer = SpeechRecognizer()
         self.current_stage = None
@@ -88,10 +90,11 @@ class SummaryPipeline:
             self.current_stage = 'summarization'
             if progress_cb: progress_cb(step='summarization', progress=80, message='Генерируем резюме...')
             summary = self.summarizer.full_summarize(recognition_result['text'])
+            actions = self.actions_extractor.extract(recognition_result['text'])
 
             self.current_stage = 'done'
             if progress_cb: progress_cb(step='done', progress=100, message='Готово')
-            return {'summary': summary, 'dialogue': dialogue_segments}
+            return {'summary': summary, 'dialogue': dialogue_segments, 'actions': actions}
         except Exception as e:
             self.current_stage = 'failed'
             if progress_cb:
@@ -102,9 +105,9 @@ class SummaryPipeline:
 if __name__ == "__main__":
     #Usage example
     pipeline = SummaryPipeline()
-    res = pipeline.run('data/4.wav')
+    res = pipeline.run('data/6.wav')
 
-    print(res['summary'])
+    print(res['actions'])
 
     #summary_to_markdown(res['summary'], filepath='data/4s.md')
     # print(res['summary'])
