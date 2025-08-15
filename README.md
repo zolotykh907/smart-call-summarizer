@@ -1,4 +1,4 @@
-# Smart Call Summarizer
+<h1 align="center">Smart Call Summarizer</h1>
 
 <div align="center" style="margin: 20px 0;">
   <img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white&logoWidth=40" alt="Python" height="30">
@@ -81,14 +81,14 @@
 Примеры настройки в коде:
 
 ```python
-# Вариант A: LM Studio
+#LM Studio
 from llm_summarizer import OpenAISummarizer
 from actions_extractor import OpenAiExtractor
 
 self.summarizer = OpenAISummarizer(
     model_name="openai/gpt-oss-20b",           # имя модели в LM Studio
     base_url="http://localhost:1234/v1",       # адрес локального сервера LM Studio
-    api_key="lm-studio"                        # любое непустое значение
+    api_key="lm-studio"                        # любое значение
 )
 self.actions_extractor = OpenAiExtractor(
     model_name="openai/gpt-oss-20b",
@@ -96,7 +96,7 @@ self.actions_extractor = OpenAiExtractor(
     api_key="lm-studio"
 )
 
-# Вариант B: Ollama
+#Ollama
 from llm_summarizer import OllamaSummarizer
 from actions_extractor import OllamaExtractor
 
